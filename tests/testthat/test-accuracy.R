@@ -1,4 +1,24 @@
 context("Accuracy")
+test_that("conf_matrix -2 classes", {
+    data(cerrado_2classes)
+    train_data <- sits_sample(cerrado_2classes, n = 100)
+    test_data <- sits_sample(cerrado_2classes, n = 25)
+    rfor_model <- sits_train(train_data, sits_rfor(num_trees = 100))
+    points_class <- sits_classify(test_data, rfor_model)
+    invisible(capture.output(conf_mx <- sits_conf_matrix(points_class)))
+    expect_true(conf_mx$overall["Accuracy"] > 0.90)
+    expect_true(conf_mx$overall["Kappa"] > 0.80)
+})
+test_that("conf_matrix - more than 2 classes", {
+    data(samples_mt_4bands)
+    train_data <- sits_sample(samples_mt_4bands, n = 25)
+    test_data <- sits_sample(samples_mt_4bands, n = 25)
+    rfor_model <- sits_train(train_data, sits_rfor(num_trees = 100))
+    points_class <- sits_classify(test_data, rfor_model)
+    invisible(capture.output(conf_mx <- sits_conf_matrix(points_class)))
+    expect_true(conf_mx$overall["Accuracy"] > 0.85)
+    expect_true(conf_mx$overall["Kappa"] > 0.80)
+})
 test_that("XLS", {
     data(cerrado_2classes)
     pred_ref <- sits_kfold_validate(cerrado_2classes, folds = 2,
@@ -42,30 +62,21 @@ test_that("Accuracy areas", {
 
     samples_mt_2bands <- dplyr::filter(samples_mt_2bands, label %in%
         c("Forest", "Pasture", "Soy_Corn"))
-    rfor_model <- sits_train(samples_mt_2bands, sits_rfor(num_trees = 200))
+    rfor_model <- sits_train(samples_mt_2bands, sits_rfor(num_trees = 1000))
 
-    ndvi_file <- c(system.file("extdata/raster/mod13q1/sinop-ndvi-2014.tif",
-        package = "sits"
-    ))
-
-    evi_file <- c(system.file("extdata/raster/mod13q1/sinop-evi-2014.tif",
-        package = "sits"
-    ))
-
-    data("timeline_2013_2014")
-
-    sinop_2014 <- sits_cube(
-        type = "BRICK",
+    data_dir <- system.file("extdata/raster/mod13q1", package = "sits")
+    cube <- sits_cube(
+        type = "STACK",
         name = "sinop-2014",
-        timeline = timeline_2013_2014,
         satellite = "TERRA",
         sensor = "MODIS",
-        bands = c("ndvi", "evi"),
-        files = c(ndvi_file, evi_file)
+        data_dir = data_dir,
+        delim = "_",
+        parse_info = c("X1", "X2", "band", "date")
     )
 
-    sinop_2014_probs <- suppressMessages(
-        sits_classify(sinop_2014,
+    probs_cube <- suppressMessages(
+        sits_classify(cube,
                       rfor_model,
                       output_dir = tempdir(),
                       memsize = 4,
@@ -74,22 +85,22 @@ test_that("Accuracy areas", {
     )
 
 
-    expect_true(all(file.exists(unlist(sinop_2014_probs$file_info[[1]]$path))))
+    expect_true(all(file.exists(unlist(probs_cube$file_info[[1]]$path))))
     tc_obj <- suppressWarnings(
-        terra::rast(sinop_2014_probs$file_info[[1]]$path[1])
+        terra::rast(probs_cube$file_info[[1]]$path[1])
         )
-    expect_true(terra::nrow(tc_obj) == sinop_2014_probs$nrows)
+    expect_true(terra::nrow(tc_obj) == probs_cube$nrows)
 
-    sinop_2014_label <- sits_label_classification(sinop_2014_probs,
+    label_cube <- sits_label_classification(probs_cube,
         output_dir = tempdir()
     )
 
     ground_truth <- system.file("extdata/samples/samples_sinop_crop.csv",
                                 package = "sits")
     invisible(capture.output(as <- suppressWarnings(
-        sits_accuracy(sinop_2014_label, ground_truth)))
+        sits_accuracy(label_cube, ground_truth)))
         )
 
-    expect_true(as.numeric(as$accuracy$user["Forest"]) > 0.5)
+    expect_true(as.numeric(as$accuracy$user["Forest"]) > 0.8)
     expect_true(as.numeric(as$accuracy$producer["Pasture"]) > 0.5)
 })

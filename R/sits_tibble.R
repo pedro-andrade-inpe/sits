@@ -1,4 +1,4 @@
-#' @title Apply a function over sits bands.
+#' @title Apply a function over a time series.
 #' @name sits_apply
 #' @author Rolf Simoes, \email{rolf.simoes@@inpe.br}
 #' @description Apply a 1D generic function to a time series
@@ -83,45 +83,59 @@ sits_apply <- function(data,
     return(data)
 }
 
-
-
-#' @title Names of the bands of a time series
-#' @name sits_rename
-#' @author Gilberto Camara, \email{gilberto.camara@@inpe.br}
+#' @title Add new sits bands.
+#' @name sits_mutate_bands
+#' @keywords internal
 #' @author Rolf Simoes, \email{rolf.simoes@@inpe.br}
-#'
-#' @description Set the names of the bands of time series in a sits tibble.
-#'
-#' @param data      Valid sits tibble.
-#' @param names        String vector with the names of the new bands.
-#' @return A sits tibble with the new names for the bands.
+#' @description Adds new bands and preserves existing in the time series
+#'              of a sits tibble using \code{dplyr::mutate} function.
+#' @param data       Valid sits tibble.
+#' @param ...        Expressions written as `name = value`.
+#'                   See \code{dplyr::mutate()} help for more details.
+#' @return           A sits tibble with same samples and the selected bands.
 #' @examples
-#' # Retrieve a time series with one band
-#' data(point_ndvi)
-#' # Rename the band
-#' ndvi1.tb <- sits_rename(point_ndvi, names = c("VEG_INDEX"))
-#' # print the names of the new band
-#' sits_bands(ndvi1.tb)
+#' \donttest{
+#' # Retrieve data for time series with label samples in Mato Grosso in Brazil
+#' data(samples_mt_6bands)
+#' # Generate a new image with the SAVI (Soil-adjusted vegetation index)
+#' savi.tb <- sits_mutate_bands(samples_mt_6bands,
+#'            SAVI = (1.5 * (NIR - RED) / (NIR + RED + 0.5)))
+#' }
 #' @export
-sits_rename <- function(data, names) {
+sits_mutate_bands <- function(data, ...) {
+
     # backward compatibility
     data <- .sits_tibble_rename(data)
-    # verify if the number of bands informed is the same
-    # as the actual number of bands in input data
-    assertthat::assert_that(length(names) == length(sits_bands(data)),
-        msg = "sits_bands: input bands and informed bands have different sizes."
-    )
-    # bands in SITS are uppercase
-    names <- toupper(names)
 
-    # rename and return
-    data$time_series <- data$time_series %>%
-        purrr::map(function(ts) {
-            names(ts) <- c("Index", names)
-            return(ts)
-        })
+    # verify if data has values
+    .sits_test_tibble(data)
+    # bands in SITS are uppercase
+    sits_bands(data) <- toupper(sits_bands(data))
+
+    # compute mutate for each time_series tibble
+    proc_fun <- function(...) {
+        data$time_series <- data$time_series %>%
+            purrr::map(function(ts) {
+                ts_computed <- ts %>%
+                    dplyr::mutate(...)
+                return(ts_computed)
+            })
+    }
+
+    # compute mutate for each time_series tibble
+    tryCatch({
+        data$time_series <- proc_fun(...)
+    },
+    error = function(e) {
+        msg <- paste0("Error - Are your band names all uppercase?")
+        message(msg)
+    }
+    )
+
     return(data)
 }
+
+
 
 #' @title Sample a percentage of a time series
 #' @name sits_sample

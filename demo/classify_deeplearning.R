@@ -26,29 +26,17 @@ dl_model <- sits_train(samples_ndvi_evi,
 
 sits_keras_diagnostics(dl_model)
 
-# select the bands "ndvi", "evi" from the "inSitu" package
-evi_file <- system.file("extdata/Sinop", "Sinop_evi_2014.tif", package = "inSitu")
-ndvi_file <- system.file("extdata/Sinop", "Sinop_ndvi_2014.tif", package = "inSitu")
-
-files <- c(ndvi_file, evi_file)
-# define the timeline
-time_file <- system.file("extdata/Sinop",
-    "timeline_2014.txt",
-    package = "inSitu"
-)
-timeline_2013_2014 <- scan(time_file, character())
-
-# create a raster metadata file based on the information about the files
+# create a data cube to be classified
+data_dir <- system.file("extdata/raster/mod13q1", package = "sits")
 sinop <- sits_cube(
-    type = "BRICK",
+    type = "STACK",
+    name = "sinop-2014",
     satellite = "TERRA",
     sensor = "MODIS",
-    name = "Sinop",
-    timeline = timeline_2013_2014,
-    bands = c("NDVI", "EVI"),
-    files = files
+    data_dir = data_dir,
+    delim = "_",
+    parse_info = c("X1", "X2", "band", "date")
 )
-
 # classify the raster image
 sinop_probs <- sits_classify(sinop,
                              ml_model = dl_model,
@@ -58,7 +46,7 @@ sinop_probs <- sits_classify(sinop,
 )
 
 # smoothen with bayesian filter
-sinop_bayes <- sits_smooth_bayes(sinop_probs, output_dir = tempdir())
+sinop_bayes <- sits_smooth(sinop_probs, output_dir = tempdir())
 # label the classified image
 sinop_label <- sits_label_classification(sinop_bayes, output_dir = tempdir())
 

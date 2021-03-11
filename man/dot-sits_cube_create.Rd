@@ -14,11 +14,6 @@
   tile = NA,
   bands,
   labels = NA,
-  scale_factors,
-  missing_values,
-  minimum_values,
-  maximum_values,
-  timelines,
   nrows,
   ncols,
   xmin,
@@ -50,16 +45,6 @@
 
 \item{labels}{Vector with labels (only for classified data).}
 
-\item{scale_factors}{Vector with scale factor for each band.}
-
-\item{missing_values}{Vector with missing values for each band.}
-
-\item{minimum_values}{Vector with minimum values for each band.}
-
-\item{maximum_values}{Vector with maximum values for each band.}
-
-\item{timelines}{List with vectors of valid timelines for each band.}
-
 \item{nrows}{Number of rows in the cube.}
 
 \item{ncols}{Number of columns in the cube.}
@@ -79,6 +64,9 @@
 \item{crs}{CRS for cube (EPSG code or PROJ4 string).}
 
 \item{file_info}{Tibble with information about stacks (for stacks)}
+}
+\value{
+A tibble containing a data cube
 }
 \description{
 Print information and save metadata about a data cube.

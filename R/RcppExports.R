@@ -5,24 +5,16 @@ apply_transition_matrix <- function(data_before, data, transition_matrix) {
     .Call(`_sits_apply_transition_matrix`, data_before, data, transition_matrix)
 }
 
-build_neigh <- function(data, window, i, j) {
-    .Call(`_sits_build_neigh`, data, window, i, j)
+bayes_smoother <- function(m, m_nrow, m_ncol, w, sigma, covar_sigma0) {
+    .Call(`_sits_bayes_smoother`, m, m_nrow, m_ncol, w, sigma, covar_sigma0)
 }
 
-bayes_estimator <- function(data, window, smoothness, max_prob) {
-    .Call(`_sits_bayes_estimator`, data, window, smoothness, max_prob)
+kernel_smoother <- function(m, m_nrow, m_ncol, w, normalised) {
+    .Call(`_sits_kernel_smoother`, m, m_nrow, m_ncol, w, normalised)
 }
 
-median_neigh <- function(data, nrows_window, ncols_window) {
-    .Call(`_sits_median_neigh`, data, nrows_window, ncols_window)
-}
-
-cbers4_cld_detect <- function(b13, b14, b15, b16, thres_1, t2, t3, t4, t5, t6, values) {
-    .Call(`_sits_cbers4_cld_detect`, b13, b14, b15, b16, thres_1, t2, t3, t4, t5, t6, values)
-}
-
-cbers4_cld_values <- function(b13, b14, b15, b16) {
-    .Call(`_sits_cbers4_cld_values`, b13, b14, b15, b16)
+bilinear_smoother <- function(m, m_nrow, m_ncol, w, tau) {
+    .Call(`_sits_bilinear_smoother`, m, m_nrow, m_ncol, w, tau)
 }
 
 linear_interp <- function(mtx) {
@@ -35,13 +27,5 @@ linear_interp_vec <- function(vec) {
 
 normalize_data <- function(data, min, max) {
     .Call(`_sits_normalize_data`, data, min, max)
-}
-
-scale_data <- function(data, scale_factor, adj_val = 0.0) {
-    .Call(`_sits_scale_data`, data, scale_factor, adj_val)
-}
-
-scale_matrix_integer <- function(data, scale_factor) {
-    .Call(`_sits_scale_matrix_integer`, data, scale_factor)
 }
 

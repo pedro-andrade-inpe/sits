@@ -8,18 +8,38 @@ default:
     rstac_pagination_limit   : 1000
 
     # Data cube types known to sits
-    cube_types              : ["WTSS", "SATVEG", "BRICK", "STACK", "RASTER", "BDC", "S2_L2A_AWS", "PROBS", "CLASSIFIED"]
-    cube_classes            : ["wtss_cube", "satveg_cube", "brick_cube", "stack_cube", "raster_cube", "bdc_cube", "s2_l2a_aws_cube", "probs_cube", "classified_image"]
+    cube_types              : ["WTSS", "SATVEG", "STACK", "RASTER", "BDC", "DEAFRICA", "S2_L2A_AWS", "GDALCUBES", "PROBS", "CLASSIFIED"]
+    cube_classes            : ["wtss_cube", "satveg_cube", "stack_cube", "raster_cube", "bdc_cube", "deafrica_cube", "s2_l2a_aws_cube", "gdalcubes_cube",  "probs_cube", "classified_image"]
 
     # Image file extensions known to SITS
-    img_file_extensions     : ["tiff", "tif", "jp2", "hdf"]
+    img_file_extensions     : ["tiff", "tif", "jp2", "hdf", "vrt"]
 
     # BDC configuration for access to data
-    bdc_stac                : "http://brazildatacube.dpi.inpe.br/stac/"
+    bdc_stac                : "https://brazildatacube.dpi.inpe.br/stac/"
     bdc_extension           : ["tif"]
 
+    # EOAfrica configuration for access to data
+    deafrica_stac           : "https://explorer.digitalearth.africa/stac/"
+    deafrica_extension      : ["tif"]
+
+    # aws configuration for access to data
+    aws_stac                : "https://earth-search.aws.element84.com/v0/"
+
+    # AWS configuration
+    AWS_DEFAULT_REGION      :
+        S2_L2A_AWS          : &s2_l2a_region "eu-central-1"
+        DEAFRICA            : *s2_l2a_region
+
+    AWS_ENDPOINT            :
+        S2_L2A_AWS          : &s2_l2a_endpoint "sentinel-s2-l2a.s3.amazonaws.com"
+        DEAFRICA            : *s2_l2a_endpoint
+
+    AWS_REQUEST_PAYER       :
+        S2_L2A_AWS          : &s2_l2a_payer "requester"
+        DEAFRICA            : *s2_l2a_payer
+
     # information to parse repositories
-    BDC               :
+    BDC                     :
         data_dir_path       : ["cube", "version", "tile"]
         parse_info          : ["sat", "res", "X1", "X2", "X3", "tile", "date", "X4", "band"]
         delim               : ["_"]
@@ -49,7 +69,7 @@ default:
 
     MODIS                   :
         bands               :
-            SITS            : ["BLUE", "RED", "NIR", "MIR"]
+            SITS            : ["BLUE", "RED", "NIR", "MIR", "NDVI", "EVI"]
         missing_value       :
             NDVI            : -3000
             EVI             : -3000
@@ -57,9 +77,6 @@ default:
             RED             : -1000
             NIR             : -1000
             MIR             : -1000
-            SAVI            : -9999
-            NDMI            : -9999
-            GEMI            : -9999
 
         minimum_value       :
             NDVI            : -3000
@@ -68,9 +85,6 @@ default:
             RED             : 0
             NIR             : 0
             MIR             : 0
-            SAVI            : -10000
-            NDMI            : -10000
-            GEMI            : -10000
 
         maximum_value       :
             NDVI            : 10000
@@ -79,9 +93,6 @@ default:
             RED             : 10000
             NIR             : 10000
             MIR             : 10000
-            SAVI            : 10000
-            NDMI            : 10000
-            GEMI            : 10000
 
         scale_factor        :
             NDVI            : 0.0001
@@ -90,9 +101,6 @@ default:
             RED             : 0.0001
             NIR             : 0.0001
             MIR             : 0.0001
-            SAVI            : 0.0001
-            NDMI            : 0.0001
-            GEMI            : 0.0001
 
         resolution          :
             xres            : 0.00208334
@@ -100,49 +108,58 @@ default:
 
     OLI                     : &landsat
         bands               :
-            SITS            : &oli_bands_sits ["B2", "B3", "B4", "B5", "B6", "B7", "NDVI", "EVI"]
-            BDC             : ["band2", "band3", "band4", "band5", "band6", "band7", "ndvi", "evi"]
+            SITS            : &oli_bands_sits ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "NDVI", "EVI", "FMASK4"]
+            BDC             : ["BAND1", "BAND2", "BAND3", "BAND4", "BAND5", "BAND6", "BAND7", "NDVI", "EVI", "FMASK4"]
             RASTER          : *oli_bands_sits
+            cloud_band      : "FMASK4"
+
         missing_value       :
             NDVI            : -9999
             EVI             : -9999
+            B1              : -9999
             B2              : -9999
             B3              : -9999
             B4              : -9999
             B5              : -9999
             B6              : -9999
             B7              : -9999
-
+            FMASK4          : 255
 
         minimum_value       :
             NDVI            : -3000
             EVI             : -3000
+            B1              : 0
             B2              : 0
             B3              : 0
             B4              : 0
             B5              : 0
             B6              : 0
             B7              : 0
+            FMASK4          : 0
 
         maximum_value       :
             NDVI            : 10000
             EVI             : 10000
+            B1              : 10000
             B2              : 10000
             B3              : 10000
             B4              : 10000
             B5              : 10000
             B6              : 10000
             B7              : 10000
+            FMASK4          : 255
 
         scale_factor:
             NDVI            : 0.0001
             EVI             : 0.0001
+            B1              : 0.0001
             B2              : 0.0001
             B3              : 0.0001
             B4              : 0.0001
             B5              : 0.0001
             B6              : 0.0001
             B7              : 0.0001
+            FMASK4          : 1
 
         resolution          :
             xres            : 30
@@ -158,7 +175,6 @@ default:
             BDC             : ["BAND13", "BAND14", "BAND15", "BAND16", "NDVI", "EVI", "CMASK"]
             RASTER          : *awfi_bands_sits
             cloud_band      : "CMASK"
-
 
         missing_value       :
             NDVI            : -9999
@@ -208,9 +224,10 @@ default:
         bands               :
             SITS            : &msi_bands_sits ["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B09", "B10", "B11", "B12", "SCL"]
             S2_L2_AWS       : &msi_bands_aws ["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B09", "B10", "B11", "B12", "SCL"]
-            BDC             : ["band1", "band2", "band3", "band4", "band5", "band6", "band7", "band8", "band8a", "band9", "band10", "band11", "band12"]
+            BDC             : ["band1", "band2", "band3", "band4", "band5", "band6", "band7", "band8", "band8a", "band9", "band10", "band11", "band12", "Fmask4"]
             RASTER          : *msi_bands_sits
             AWS             : *msi_bands_aws
+            DEAFRICA        : *msi_bands_aws
             cloud_band      : "SCL"
 
         SCL_values          :
@@ -227,7 +244,7 @@ default:
             10              : "thin cirrus"
             11              : "snow or ice"
 
-        FMASK_values        :
+        FMASK4_values       :
             0               : "clear land pixel"
             1               : "clear water pixel"
             2               : "cloud shadow"
@@ -254,6 +271,7 @@ default:
             B11             : -9999
             B12             : -9999
             SCL             : 0
+            FMASK4          : 255
 
         minimum_value       :
             EVI             : -9999
@@ -274,6 +292,7 @@ default:
             B11             : 0
             B12             : 0
             SCL             : 0
+            FMASK4          : 0
 
         maximum_value       :
             EVI             : 10000
@@ -294,6 +313,7 @@ default:
             B11             : 10000
             B12             : 10000
             SCL             : 1
+            FMASK4          : 255
 
         scale_factor:
             EVI             : 0.0001
@@ -314,6 +334,7 @@ default:
             B11             : 0.0001
             B12             : 0.0001
             SCL             : 1
+            FMASK4          : 1
 
         resolution          :
             xres            : 10
@@ -333,13 +354,17 @@ default:
         BDC                 :
             AWFI_CLD_BAND   : "CMASK"
             AWFI_cld_vls    : 4
-            MSI_CLD_BAND    : "FMASK"
+            MSI_CLD_BAND    : "FMASK4"
             MSI_cld_vls     : [2, 3, 4, 255]
-            OLI_CLD_BAND    : "FMASK"
+            OLI_CLD_BAND    : "FMASK4"
             OLI_cld_vls     : [2, 3, 4, 255]
 
 
         S2_L2A_AWS          :
+            MSI_CLD_BAND    : "SCL"
+            MSI_cld_vls     : [0, 1, 2, 3, 7, 8, 9, 10, 11]
+
+        DEAFRICA            :
             MSI_CLD_BAND    : "SCL"
             MSI_cld_vls     : [0, 1, 2, 3, 7, 8, 9, 10, 11]
 
@@ -361,6 +386,7 @@ default:
         terra               : &bands-sv ["NDVI", "EVI"]
         aqua                : *bands-sv
         comb                : *bands-sv
+
     SATVEG_bbox             :
         terra               :
             xmin            : &xmin_satveg -81.2341
@@ -387,14 +413,29 @@ default:
         comb                :
             nrows           : *nrows_satveg
             ncols           : *ncols_satveg
+
     SATVEG_prefilter        :
         terra               : &prefilter ["0", "1", "2", "3"] # "0" - none, "1" - no data correction, "2" - cloud correction, "3" - no data and cloud correction
         aqua                : *prefilter
         comb                : *prefilter
+
     SATVEG_crs              :
         terra               : &crs-wgs84 "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
         aqua                : *crs-wgs84
         comb                : *crs-wgs84
+
+
+    PROBS                   :
+        scale_factor        : 0.0001
+        minimum_value       : 0
+        maximum_value       : 10000
+        missing_value       : -9999
+
+    CLASSIFIED              :
+        scale_factor        : 1
+        minimum_value       : 1
+        maximum_value       : 1000
+        missing_value       : -9999
 
     colors:
         Araguaia :          "palegreen3"

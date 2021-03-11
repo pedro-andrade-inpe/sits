@@ -31,12 +31,18 @@
 
     # converts bands name to upper case
     collection_info <- .sits_stac_toupper(collection_info)
+    sensor <- collection_info$properties$instruments
 
     # checks if the supplied bands match the product bands
     if (!purrr::is_null(bands)) {
 
         # converting to upper bands
         bands <- toupper(bands)
+        # convert bands to those known by the cloud provider
+        bands <- .sits_config_bands_stac_read(stac_provider = "BDC",
+                                              sensor = sensor,
+                                              bands = bands)
+        # check bands
         assertthat::assert_that(all(bands %in% collection_info$bands),
                                 msg = paste("The supplied bands do not match",
                                             "the data cube bands."))
@@ -180,6 +186,22 @@
 
     return(items_grouped)
 }
+
+#' @title Checks if the crs provided is valid
+#' @name .sits_check_crs
+#' @keywords internal
+#'
+#' @param stac_crs a \code{numeric} or \code{character} with CRS provided by
+#'  STAC.
+#'
+#' @return  a \code{character} with the formatted CRS.
+.sits_format_crs <- function(stac_crs) {
+    if (is.null(stac_crs))
+        stop(paste("sits_cube: The CRS in this catalog is null, please enter",
+                   "a valid CRS."))
+
+    return(sf::st_crs(stac_crs)[["input"]])
+}
 #' @title Get bbox and intersects parameters
 #' @name .sits_stac_roi
 #' @keywords internal
@@ -200,8 +222,9 @@
 
     # verify the provided parameters
     if (!("sf" %in% class(roi))) {
-        if (all(c("xmin", "xmax", "ymin", "ymax") %in% names(roi)))
-            roi_list[c("bbox", "intersects")] <- list(roi, NULL)
+        if (all(c("xmin", "ymin", "xmax", "ymax") %in% names(roi)))
+            roi_list[c("bbox", "intersects")] <-
+                list(roi[c("xmin", "ymin", "xmax", "ymax")], NULL)
 
         else if (typeof(roi) == "character")
             roi_list[c("bbox", "intersects")] <- list(NULL, roi)
@@ -293,11 +316,11 @@
 #' @name .sits_stac_get_bbox
 #' @keywords internal
 #'
-#' @param items      a \code{STACItemCollection} object returned by rstac.
-#' @param collection a \code{STACCollection} object returned by rstac.
+#' @param items a \code{STACItemCollection} object returned by rstac.
+#' @param crs   a \code{character} with proj code.
 #'
 #' @return  a \code{bbox} object from the sf package representing the tile bbox.
-.sits_stac_get_bbox <- function(items, collection) {
+.sits_stac_get_bbox <- function(items, crs) {
 
     # get the extent points
     extent_points <- items$features[[1]]$geometry$coordinates[[1]]
@@ -305,7 +328,7 @@
     # create a polygon and transform the proj
     polygon_ext <- sf::st_polygon(list(do.call(rbind, extent_points)))
     polygon_ext <- sf::st_sfc(polygon_ext, crs = 4326) %>%
-        sf::st_transform(., collection[["bdc:crs"]])
+        sf::st_transform(., crs)
 
     bbox_ext <- sf::st_bbox(polygon_ext)
 
@@ -331,23 +354,17 @@
                                  cube,
                                  file_info) {
 
-    # obtain the timeline
-    timeline <- unique(lubridate::as_date(file_info$date))
-
     # set the labels
     labels <- c("NoClass")
 
     # obtain bbox extent
-    bbox <- .sits_stac_get_bbox(items, collection)
+    bbox <- .sits_stac_get_bbox(items, collection[["bdc:crs"]])
 
     # get the bands
     bands <- unique(file_info$band)
 
-    # get scale factors, missing, minimum, and maximum values
-    metadata_values  <- .sits_config_stac_values(collection, bands)
-
     # create a tibble to store the metadata
-    cube <- .sits_cube_create(type      = "BDC",
+    tile <- .sits_cube_create(type      = "BDC",
                               URL       = url,
                               satellite = collection$properties$platform,
                               sensor    = collection$properties$instruments,
@@ -356,11 +373,6 @@
                               tile      = items$tile,
                               bands     = collection$bands,
                               labels    = labels,
-                              scale_factors  = metadata_values$scale,
-                              missing_values = metadata_values$nodata,
-                              minimum_values = metadata_values$min,
-                              maximum_values = metadata_values$max,
-                              timelines = list(timeline),
                               nrows     = items$nrows,
                               ncols     = items$ncols,
                               xmin      = bbox$xmin[[1]],
@@ -372,5 +384,7 @@
                               crs       = collection[["bdc:crs"]],
                               file_info = file_info)
 
-    return(cube)
+    tile <- .sits_config_bands_stac_write(tile)
+
+    return(tile)
 }
